@@ -40,10 +40,14 @@
         };
 
         devShells.default = pkgs.mkShell {
-          buildInputs = [
+          packages = [
             (pkgs.${python}.withPackages (pythonPackages pkgs.${python}))
             pkgs.mosquitto # for mosquitto_sub & mosquitto_pub test cmds
+            pkgs.libnotify
           ];
+          shellHook = ''
+            export NOTIFY_SEND_CMD=${pkgs.libnotify}/bin/notify-send
+          '';
         };
       });
 }

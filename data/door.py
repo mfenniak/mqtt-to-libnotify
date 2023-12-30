@@ -3,6 +3,7 @@ from dataclasses import dataclass
 from enum import Enum, auto
 from mqtt import MqttMessageReceiver
 from typing import Literal
+from notify.notification_source import NotificationSource
 import datetime
 import json
 import pytz
@@ -17,8 +18,9 @@ class DoorInformation:
     status: DoorStatus
     status_since: datetime.datetime
 
-class DoorDataResolver(MqttMessageReceiver):
+class DoorDataResolver(MqttMessageReceiver, NotificationSource[DoorInformation]):
     def __init__(self, topic: str) -> None:
+        super().__init__()
         self.data = DoorInformation(
             status=DoorStatus.UNKNOWN,
             status_since=datetime.datetime.now(pytz.utc)
@@ -56,7 +58,6 @@ class DoorDataResolver(MqttMessageReceiver):
             print("Ignoring message because it's too old")
             return True
 
-        # FIXME: Send the notification here        
-        print("Door status updated to", self.data.status, "at", self.data.status_since)
+        await self.notify(self.data)
 
         return True

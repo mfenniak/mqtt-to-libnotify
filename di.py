@@ -1,7 +1,9 @@
 from data.door import DoorDataResolver
 from dependency_injector import containers, providers
 from mqtt import MqttConfig, MqttServer
-from mqtt_to_libnotify import MainService
+from mainservice import MainService
+from notify.notifysend import NotifySend
+from notify.formatter import DoorStatusNotificationFormatter
 import asyncio
 
 class Container(containers.DeclarativeContainer):
@@ -31,6 +33,18 @@ class Container(containers.DeclarativeContainer):
         discovery_object_id=config.mqtt.discovery.object_id,
     )
 
+    notifysend = providers.Singleton(
+        NotifySend,
+        notify_send_cmd=config.notifysend.path,
+    )
+
+    door_status_notification_formatter = providers.Singleton(
+        DoorStatusNotificationFormatter,
+        icon_path=config.icon_path,
+        notification_source=garage_door_status,
+        notification_sink=notifysend,
+    )
+
     shutdown_event = providers.Singleton(asyncio.Event)
 
     mqtt_server = providers.Singleton(
@@ -46,6 +60,7 @@ class Container(containers.DeclarativeContainer):
         MainService,
         shutdown_event=shutdown_event,
         services=providers.List(
-            mqtt_server
+            mqtt_server,
+            door_status_notification_formatter,
         )
     )
