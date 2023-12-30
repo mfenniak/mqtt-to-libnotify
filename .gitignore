@@ -1,7 +1,6 @@
 __pycache__
 .direnv
 result
-emulator_config.json
-config.py
 .mypy_cache
+.pytest_cache
 .localenvrc

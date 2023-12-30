@@ -1,10 +1,9 @@
-from .door import DoorDataResolver, DoorStatus, DoorInformation
+from .door import DoorDataResolver, DoorStatus
 from aiomqtt import Client, Message
 from unittest.mock import Mock
 import datetime
 import json
 import pytest
-import pytz
 
 # Fixture for mock client
 @pytest.fixture
@@ -26,7 +25,7 @@ async def test_subscribe_to_topics_door(mock_client: Mock) -> None:
     mock_client.subscribe.assert_called_with(topic)
 
 @pytest.mark.asyncio
-async def test_handle_message_wrong_topic_door(mock_message: Mock, mock_client: Mock) -> None:
+async def test_handle_message_wrong_topic_door(mock_message: Mock) -> None:
     topic = "homeassistant/output/door/garage_door"
     resolver = DoorDataResolver(topic)
     mock_message.topic = "wrong/topic"

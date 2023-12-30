@@ -1,4 +1,3 @@
-from .resolver import DataResolver
 from aiomqtt import Client, Message
 from dataclasses import dataclass
 from enum import Enum, auto
@@ -6,7 +5,6 @@ from mqtt import MqttMessageReceiver
 from typing import Literal
 import datetime
 import json
-import math
 import pytz
 
 class DoorStatus(Enum):
@@ -19,16 +17,13 @@ class DoorInformation:
     status: DoorStatus
     status_since: datetime.datetime
 
-class DoorDataResolver(DataResolver[DoorInformation], MqttMessageReceiver):
+class DoorDataResolver(MqttMessageReceiver):
     def __init__(self, topic: str) -> None:
         self.data = DoorInformation(
             status=DoorStatus.UNKNOWN,
             status_since=datetime.datetime.now(pytz.utc)
         )
         self.topic = topic
-
-    async def maybe_refresh(self, now: float) -> None:
-        return
 
     async def subscribe_to_topics(self, client: Client) -> None:
         await client.subscribe(self.topic)
@@ -55,9 +50,13 @@ class DoorDataResolver(DataResolver[DoorInformation], MqttMessageReceiver):
         
         self.data = DoorInformation(status=door_status, status_since=timestamp)
 
-        return True
+        # If the status wasn't updated recently, then it's probably a persistent message received after a restart
+        # so we should ignore it
+        if self.data.status_since < datetime.datetime.now(pytz.utc) - datetime.timedelta(minutes=1):
+            print("Ignoring message because it's too old")
+            return True
 
-# datetime.datetime.strptime('1985-04-12 23:20:50.288-06:00', '%Y-%m-%d %H:%M:%S.%f%z')
-# homeassistant/output/door/garage_door { "timestamp": "2023-10-10 13:52:55.702056-06:00", "state": "closed" }
-# homeassistant/output/door/garage_man_door { "timestamp": "2023-10-10 13:53:07.571062-06:00", "state": "closed" }
-# homeassistant/output/door/back_door { "timestamp": "2023-10-10 13:54:19.102155-06:00", "state": "closed" }
+        # FIXME: Send the notification here        
+        print("Door status updated to", self.data.status, "at", self.data.status_since)
+
+        return True

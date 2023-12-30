@@ -1,7 +1,4 @@
-from typing import Literal, TYPE_CHECKING
-
-if TYPE_CHECKING:
-    from displaybase import DisplayBase
+from typing import Literal
 
 class Service(object):
     def __init__(self) -> None:
@@ -10,5 +7,5 @@ class Service(object):
     async def status_update(self, state: Literal["ON"] | Literal["OFF"]) -> None:
         pass
 
-    async def start(self, clock: "DisplayBase") -> None:
+    async def start(self) -> None:
         pass
