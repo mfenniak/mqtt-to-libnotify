@@ -79,8 +79,14 @@ class MqttServer(Service):
                 if messages_next.done():
                     message = messages_next.result()
                     for other_receiver in self.other_receivers:
-                        if await other_receiver.handle_message(message):
-                            break
+                        try:
+                            # if an exception occurrs in handle_message, it will propagate up to here all the way
+                            # to the backoff decorator which will reconnect to mqtt -- that's not the right reaction
+                            # since it's not an mqtt problem, but rather a software problem.  Should catch and log.
+                            if await other_receiver.handle_message(message):
+                                break
+                        except Exception as e:
+                            print("Exception in handle_message", e)
                     else:
                         print("Unknown message", message.topic, message.payload)
                     # this is correct, but create_task types are wrong? https://github.com/python/typeshed/issues/10185
