@@ -62,32 +62,31 @@ class MqttServer(Service):
             await self.process_messages_forever(client)
 
     async def process_messages_forever(self, client: Client) -> None:
-        async with client.messages() as messages:
-            # Subscribe to the topic where we'll receive data from MQTT
-            for other_receiver in self.other_receivers:
-                await other_receiver.subscribe_to_topics(client)
+        # Subscribe to the topic where we'll receive data from MQTT
+        for other_receiver in self.other_receivers:
+            await other_receiver.subscribe_to_topics(client)
 
-            # this is correct, but create_task types are wrong? https://github.com/python/typeshed/issues/10185
-            messages_next = asyncio.create_task(anext(messages)) # type: ignore
-            # status_update = asyncio.create_task(self.status_update_queue.get())
-            shutdown_wait = asyncio.create_task(self.shutdown_event.wait())
+        # this is correct, but create_task types are wrong? https://github.com/python/typeshed/issues/10185
+        messages_next = asyncio.create_task(anext(client.messages)) # type: ignore
+        # status_update = asyncio.create_task(self.status_update_queue.get())
+        shutdown_wait = asyncio.create_task(self.shutdown_event.wait())
 
-            while not self.shutdown_event.is_set():
-                aws = [ messages_next, shutdown_wait ]
-                await asyncio.wait(aws, return_when=asyncio.FIRST_COMPLETED)
+        while not self.shutdown_event.is_set():
+            aws = [ messages_next, shutdown_wait ]
+            await asyncio.wait(aws, return_when=asyncio.FIRST_COMPLETED)
 
-                if messages_next.done():
-                    message = messages_next.result()
-                    for other_receiver in self.other_receivers:
-                        try:
-                            # if an exception occurrs in handle_message, it will propagate up to here all the way
-                            # to the backoff decorator which will reconnect to mqtt -- that's not the right reaction
-                            # since it's not an mqtt problem, but rather a software problem.  Should catch and log.
-                            if await other_receiver.handle_message(message):
-                                break
-                        except Exception as e:
-                            print("Exception in handle_message", e)
-                    else:
-                        print("Unknown message", message.topic, message.payload)
-                    # this is correct, but create_task types are wrong? https://github.com/python/typeshed/issues/10185
-                    messages_next = asyncio.create_task(anext(messages)) # type: ignore
+            if messages_next.done():
+                message = messages_next.result()
+                for other_receiver in self.other_receivers:
+                    try:
+                        # if an exception occurrs in handle_message, it will propagate up to here all the way
+                        # to the backoff decorator which will reconnect to mqtt -- that's not the right reaction
+                        # since it's not an mqtt problem, but rather a software problem.  Should catch and log.
+                        if await other_receiver.handle_message(message):
+                            break
+                    except Exception as e:
+                        print("Exception in handle_message", e)
+                else:
+                    print("Unknown message", message.topic, message.payload)
+                # this is correct, but create_task types are wrong? https://github.com/python/typeshed/issues/10185
+                messages_next = asyncio.create_task(anext(client.messages)) # type: ignore

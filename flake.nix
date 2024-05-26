@@ -17,7 +17,6 @@
             ps.aiohttp
             ps.aiomqtt
             ps.backoff
-            ps.dependency-injector
             ps.mypy
             ps.pylint
             ps.pytest
