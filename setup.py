@@ -6,6 +6,7 @@ import os
 setup(
     name="mqtt_to_libnotify",
     py_modules=[
+        'config',
         'data/__init__',
         'data/door',
         'di',
